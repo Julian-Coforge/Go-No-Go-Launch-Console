@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 // The UI calls /api/*; in development Vite forwards those calls to FastAPI on :8000.
