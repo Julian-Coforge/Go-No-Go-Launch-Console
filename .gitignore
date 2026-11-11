@@ -221,3 +221,6 @@ __marimo__/
 
 # Front end
 node_modules/
+
+# Local SQLite database
+backend/data/

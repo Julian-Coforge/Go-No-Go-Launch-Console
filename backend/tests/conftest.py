@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.llm import FakeClient
 from app.main import create_app
 
 
@@ -11,5 +12,23 @@ def no_api_key(monkeypatch):
 
 
 @pytest.fixture
-def client():
-    return TestClient(create_app())
+def db_path(tmp_path):
+    """A fresh SQLite file per test, so tests never touch the real database."""
+    return tmp_path / "reports.db"
+
+
+@pytest.fixture
+def client(db_path):
+    return TestClient(create_app(llm=FakeClient({}), db_path=db_path))
+
+
+@pytest.fixture
+def report():
+    return {
+        "name": "Ada Lovelace",
+        "station": "Pad 39A",
+        "wind_knots": 12.5,
+        "temp_c": 18.0,
+        "fuel_pct": 99.0,
+        "note": "All readings nominal.",
+    }
