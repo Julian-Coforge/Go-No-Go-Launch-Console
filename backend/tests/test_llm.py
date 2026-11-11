@@ -55,6 +55,6 @@ def test_anthropic_client_fits_the_interface():
     assert isinstance(AnthropicClient(), LLMClient)
 
 
-def test_app_uses_the_injected_client():
+def test_app_uses_the_injected_client(db_path):
     fake = FakeClient({})
-    assert create_app(llm=fake).state.llm is fake
+    assert create_app(llm=fake, db_path=db_path).state.llm is fake

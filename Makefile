@@ -22,7 +22,7 @@ $(FRONTEND_STAMP): frontend/package.json frontend/package-lock.json
 
 dev: install
 	@trap 'kill $$(jobs -p) 2>/dev/null' INT TERM; \
-	(cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000) & \
+	(cd backend && .venv/bin/uvicorn app.main:create_app --factory --reload --port 8000) & \
 	(cd frontend && npm run dev) & \
 	wait
 
