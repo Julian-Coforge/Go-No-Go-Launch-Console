@@ -24,6 +24,8 @@ from app.llm import LLMClient
 from app.schemas import ReportIn
 
 PipelineStatus = Literal["needs_review", "pending_approval"]
+# Only the approve route moves a report to "approved".
+ReportStatus = Literal["needs_review", "pending_approval", "approved"]
 
 
 class TraceStep(BaseModel):
@@ -56,6 +58,9 @@ class ReportOut(ReportIn, PipelineResult):
 
     id: int
     created_at: str
+    status: ReportStatus
+    approved_by: Optional[str] = None
+    approved_at: Optional[str] = None
 
 
 def _model_card(

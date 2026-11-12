@@ -22,11 +22,18 @@ CREATE TABLE IF NOT EXISTS reports (
     note TEXT NOT NULL,
     created_at TEXT NOT NULL,
     status TEXT NOT NULL,
-    result_json TEXT NOT NULL
+    result_json TEXT NOT NULL,
+    approved_by TEXT,
+    approved_at TEXT
 )
 """
 
-COLUMNS = "id, name, station, wind_knots, temp_c, fuel_pct, note, created_at, status, result_json"
+COLUMNS = (
+    "id, name, station, wind_knots, temp_c, fuel_pct, note, created_at,"
+    " status, result_json, approved_by, approved_at"
+)
+
+APPROVABLE = ("pending_approval", "needs_review")
 
 # Reports saved before the pipeline existed have no results. They are moved
 # to this table (not deleted) so the app can start on an older database.
@@ -40,6 +47,7 @@ class ReportStore:
         with self._connect() as conn:
             self._move_aside_pre_pipeline_table(conn)
             conn.execute(SCHEMA)
+            self._add_approval_columns(conn)
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path)
@@ -51,6 +59,14 @@ class ReportStore:
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(reports)")}
         if columns and "result_json" not in columns:
             conn.execute(f"ALTER TABLE reports RENAME TO {PRE_PIPELINE_TABLE}")
+
+    @staticmethod
+    def _add_approval_columns(conn: sqlite3.Connection) -> None:
+        """Databases made before approval existed lack these columns."""
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(reports)")}
+        for column in ("approved_by", "approved_at"):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE reports ADD COLUMN {column} TEXT")
 
     @staticmethod
     def _to_report(row: sqlite3.Row) -> ReportOut:
@@ -95,3 +111,18 @@ class ReportStore:
                 f"SELECT {COLUMNS} FROM reports WHERE id = ?", (report_id,)
             ).fetchone()
         return self._to_report(row) if row else None
+
+    def approve(self, report_id: int, approver_name: str) -> Optional[ReportOut]:
+        """Mark a report approved by a person. Returns None if it can't be:
+        the report doesn't exist or is already approved (see get)."""
+        approved_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as conn:
+            # One conditional UPDATE, so two approvals at once can't both win.
+            cursor = conn.execute(
+                "UPDATE reports SET status = 'approved', approved_by = ?, approved_at = ?"
+                f" WHERE id = ? AND status IN ({', '.join('?' for _ in APPROVABLE)})",
+                (approver_name, approved_at, report_id, *APPROVABLE),
+            )
+            if cursor.rowcount == 0:
+                return None
+        return self.get(report_id)
