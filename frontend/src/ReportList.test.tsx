@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import ReportList from "./ReportList";
 import type { Report } from "./types";
@@ -75,5 +75,12 @@ describe("ReportList", () => {
   it("labels the list for screen readers", () => {
     render(<ReportList reports={[report()]} />);
     expect(within(screen.getByRole("list", { name: "Filed reports" })).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("opens a report when its button is clicked", () => {
+    const onSelect = vi.fn();
+    render(<ReportList reports={[report({ id: 3 })]} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open report #3" }));
+    expect(onSelect).toHaveBeenCalledWith(3);
   });
 });

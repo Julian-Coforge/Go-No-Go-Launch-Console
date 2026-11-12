@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { fullReport } from "./fixtures";
 
 type Routes = Record<string, () => Promise<Response>>;
 
@@ -98,5 +99,29 @@ describe("App", () => {
     fileAReport();
     await screen.findByText(/Pad 40/);
     expect(screen.getAllByRole("listitem")[0]).toHaveTextContent("#2");
+  });
+
+  it("opens a report's details from the list", async () => {
+    stubApi({
+      "GET /api/reports": ok([STORED]),
+      "GET /api/reports/1": ok(fullReport()),
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Open report #1" }));
+    expect(await screen.findByRole("heading", { name: "Report #1" })).toBeInTheDocument();
+  });
+
+  it("shows an approval in the list straight away", async () => {
+    stubApi({
+      "GET /api/reports": ok([STORED]),
+      "GET /api/reports/1": ok(fullReport()),
+      "POST /api/reports/1/approve": ok(fullReport({ status: "approved", approved_by: "Gene Kranz" })),
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Open report #1" }));
+    fireEvent.change(await screen.findByLabelText("Flight Director name"), { target: { value: "Gene Kranz" } });
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    const list = screen.getByRole("list", { name: "Filed reports" });
+    expect(await within(list).findByText("Approved by Gene Kranz")).toBeInTheDocument();
   });
 });
