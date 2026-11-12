@@ -28,12 +28,14 @@ function Check({ name, check }: { name: string; check: CheckResult }) {
 
 function TraceCard({ step }: { step: TraceStep }) {
   return (
-    <li className="trace-card">
-      <strong>{step.step}</strong>{" "}
-      <span>{step.kind === "code" ? "plain code" : step.model}</span>{" "}
-      <span>{`${step.input_tokens} in / ${step.output_tokens} out tokens`}</span>{" "}
-      <span>{dollars(step.cost_usd)}</span>{" "}
-      {step.fallback && <em className="fallback">fell back</em>}
+    <li className={`trace-card trace-${step.kind}`}>
+      <div className="trace-top">
+        <strong className="trace-step">{step.step}</strong>{" "}
+        {step.fallback && <em className="badge fallback">fell back</em>}
+      </div>
+      <span className="trace-model">{step.kind === "code" ? "plain code" : step.model}</span>{" "}
+      <span className="trace-meta">{`${step.input_tokens} in / ${step.output_tokens} out tokens`}</span>{" "}
+      <span className="trace-cost">{dollars(step.cost_usd)}</span>
       <p className="trace-summary">{step.summary}</p>
     </li>
   );
@@ -73,19 +75,27 @@ function ApproveForm({
   }
 
   return (
-    <form onSubmit={submit} aria-label="Approve report">
-      <label htmlFor="approver-name">Flight Director name</label>
-      <input
-        id="approver-name"
-        value={approver}
-        required
-        maxLength={100}
-        onChange={(event) => setApprover(event.target.value)}
-      />
-      <button type="submit" disabled={sending}>
-        Approve
-      </button>
-      {error && <p role="alert">{error}</p>}
+    <form className="approve-form" onSubmit={submit} aria-label="Approve report">
+      <div className="field">
+        <label htmlFor="approver-name">Flight Director name</label>
+        <div className="approve-row">
+          <input
+            id="approver-name"
+            value={approver}
+            required
+            maxLength={100}
+            onChange={(event) => setApprover(event.target.value)}
+          />
+          <button type="submit" disabled={sending}>
+            Approve
+          </button>
+        </div>
+      </div>
+      {error && (
+        <p role="alert" className="error-text">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
@@ -100,23 +110,31 @@ export default function ReportDetail({
   const reasons = report.status === "needs_review" ? reviewReasons(report) : [];
 
   return (
-    <article className="report-detail" aria-labelledby="detail-heading">
-      <h2 id="detail-heading">Report #{report.id}</h2>
-      <p>
-        {report.station}, filed by {report.name}
-      </p>
-      <p className={`verdict verdict-${report.verdict}`}>
-        <strong>{report.verdict === "go" ? "GO" : "NO GO"}</strong>
-      </p>
+    <article className="card report-detail" aria-labelledby="detail-heading">
+      <div className="detail-header">
+        <div>
+          <h2 id="detail-heading">Report #{report.id}</h2>
+          <p className="muted">
+            {report.station}, filed by {report.name}
+          </p>
+        </div>
+        <p className={`verdict-large verdict-${report.verdict}`}>
+          <strong>{report.verdict === "go" ? "GO" : "NO GO"}</strong>
+        </p>
+      </div>
+
+      <div className="facts">
+        <p className="fact">{`Brief by: ${report.brief_by_minutes} minutes`}</p>
+        <p className="fact">{`${report.classification.subsystem}, ${report.classification.severity} severity`}</p>
+      </div>
+
       {report.violations.length > 0 && (
-        <ul aria-label="Limit violations">
+        <ul className="violations" aria-label="Limit violations">
           {report.violations.map((violation) => (
             <li key={violation.field}>{violation.message}</li>
           ))}
         </ul>
       )}
-      <p>{`Brief by: ${report.brief_by_minutes} minutes`}</p>
-      <p>{`${report.classification.subsystem}, ${report.classification.severity} severity`}</p>
 
       {reasons.length > 0 && (
         <div role="alert" className="needs-review">
@@ -131,23 +149,23 @@ export default function ReportDetail({
       <p className="note">{report.note}</p>
 
       <h3>Checks</h3>
-      <ul aria-label="Checks">
+      <ul className="checks" aria-label="Checks">
         {CHECK_NAMES.map(([key, name]) => (
           <Check key={key} name={name} check={report.checks[key]} />
         ))}
       </ul>
 
       <h3>Trace</h3>
-      <ol aria-label="Pipeline trace">
+      <ol className="trace" aria-label="Pipeline trace">
         {report.trace.map((step, index) => (
           <TraceCard key={`${step.step}-${index}`} step={step} />
         ))}
       </ol>
-      <p>{`Total cost: ${dollars(report.total_cost_usd)}`}</p>
+      <p className="total-cost">{`Total cost: ${dollars(report.total_cost_usd)}`}</p>
 
       <h3>Approval</h3>
       {report.status === "approved" ? (
-        <p>
+        <p className="approved-by">
           Approved by {report.approved_by}
           {report.approved_at && ` at ${new Date(report.approved_at).toLocaleString()}`}
         </p>

@@ -63,26 +63,45 @@ export default function App() {
   }, []);
 
   return (
-    <main>
-      <h1>Mission Control</h1>
-      <p role="status">{STATUS_TEXT[status]}</p>
+    <>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <h1>Mission Control</h1>
+          <span className="app-subtitle">Go/No-Go Launch Console</span>
+          <p role="status" className={`api-status api-${status}`}>
+            {STATUS_TEXT[status]}
+          </p>
+        </div>
+      </header>
 
-      <section aria-labelledby="file-heading">
-        <h2 id="file-heading">File a report</h2>
-        <ReportForm onFiled={(report) => setReports((current) => [report as Report, ...current])} />
-      </section>
+      <main className="layout">
+        <div className="column">
+          <section className="card" aria-labelledby="file-heading">
+            <h2 id="file-heading">File a report</h2>
+            <ReportForm onFiled={(report) => setReports((current) => [report as Report, ...current])} />
+          </section>
 
-      <section aria-labelledby="reports-heading">
-        <h2 id="reports-heading">Reports</h2>
-        {loadFailed ? (
-          <p>Could not load reports.</p>
-        ) : (
-          <ReportList reports={reports} onSelect={openReport} />
-        )}
-      </section>
+          <section className="card" aria-labelledby="reports-heading">
+            <h2 id="reports-heading">Reports</h2>
+            {loadFailed ? (
+              <p className="muted">Could not load reports.</p>
+            ) : (
+              <ReportList reports={reports} onSelect={openReport} />
+            )}
+          </section>
+        </div>
 
-      {detailError && <p>{detailError}</p>}
-      {selected && <ReportDetail key={selected.id} report={selected} onApproved={approved} />}
-    </main>
+        <div className="column">
+          {detailError && <p className="card error-text">{detailError}</p>}
+          {selected ? (
+            <ReportDetail key={selected.id} report={selected} onApproved={approved} />
+          ) : (
+            <section className="card placeholder">
+              <p className="muted">Open a report to see its briefing, checks and trace.</p>
+            </section>
+          )}
+        </div>
+      </main>
+    </>
   );
 }
