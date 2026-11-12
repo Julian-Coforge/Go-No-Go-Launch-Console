@@ -11,7 +11,13 @@ function statusText(report: Report) {
     : STATUS_TEXT[report.status];
 }
 
-export default function ReportList({ reports }: { reports: Report[] }) {
+export default function ReportList({
+  reports,
+  onSelect,
+}: {
+  reports: Report[];
+  onSelect?: (id: number) => void;
+}) {
   if (reports.length === 0) return <p>No reports filed yet.</p>;
 
   return (
@@ -27,6 +33,14 @@ export default function ReportList({ reports }: { reports: Report[] }) {
           </strong>{" "}
           <span className="severity">{report.classification.severity} severity</span>{" "}
           <span className={`status status-${report.status}`}>{statusText(report)}</span>
+          {onSelect && (
+            <>
+              {" "}
+              <button type="button" onClick={() => onSelect(report.id)}>
+                Open report #{report.id}
+              </button>
+            </>
+          )}
         </li>
       ))}
     </ul>

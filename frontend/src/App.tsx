@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
+import ReportDetail from "./ReportDetail";
 import ReportForm from "./ReportForm";
 import ReportList from "./ReportList";
-import type { Report } from "./types";
+import type { FullReport, Report } from "./types";
 
 type ApiStatus = "checking" | "online" | "offline";
 
@@ -16,6 +17,25 @@ export default function App() {
   const [status, setStatus] = useState<ApiStatus>("checking");
   const [reports, setReports] = useState<Report[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [selected, setSelected] = useState<FullReport | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  async function openReport(id: number) {
+    setDetailError(null);
+    try {
+      const response = await fetch(`/api/reports/${id}`);
+      if (!response.ok) throw new Error(`GET /reports/${id} returned ${response.status}`);
+      setSelected(await response.json());
+    } catch {
+      setDetailError(`Could not load report #${id}.`);
+    }
+  }
+
+  // An approval updates both the open report and its row in the list.
+  function approved(report: FullReport) {
+    setSelected(report);
+    setReports((current) => current.map((item) => (item.id === report.id ? report : item)));
+  }
 
   useEffect(() => {
     let active = true;
@@ -54,8 +74,15 @@ export default function App() {
 
       <section aria-labelledby="reports-heading">
         <h2 id="reports-heading">Reports</h2>
-        {loadFailed ? <p>Could not load reports.</p> : <ReportList reports={reports} />}
+        {loadFailed ? (
+          <p>Could not load reports.</p>
+        ) : (
+          <ReportList reports={reports} onSelect={openReport} />
+        )}
       </section>
+
+      {detailError && <p>{detailError}</p>}
+      {selected && <ReportDetail key={selected.id} report={selected} onApproved={approved} />}
     </main>
   );
 }
