@@ -9,7 +9,7 @@ they never touch the verdict, which comes from limits.check_limits alone.
 import asyncio
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, StrictBool, ValidationError
 
 from app.llm import LLMClient
 from app.schemas import ReportIn
@@ -48,7 +48,8 @@ ReviewStatus = Literal["needs_review", "pending_approval"]
 
 
 class CheckReply(BaseModel):
-    flagged: bool
+    # Strict: a reply like "no" must not count as a real answer.
+    flagged: StrictBool
     reason: str = ""
 
 
