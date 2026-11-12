@@ -6,9 +6,11 @@ network and no API key.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
-from typing import Optional, Protocol, Union, runtime_checkable
+from typing import Any, Optional, Protocol, Union, runtime_checkable
 
+import anthropic
 from pydantic import BaseModel
 
 
@@ -83,11 +85,39 @@ class FakeClient:
         )
 
 
-class AnthropicClient:
-    """Real Claude client. The SDK call is added with the pipeline steps (Phase 3)."""
+class MissingAPIKeyError(RuntimeError):
+    """No Anthropic API key is set, so no real model call can be made."""
 
-    def __init__(self, api_key: Optional[str] = None) -> None:
+
+class ModelRefusalError(RuntimeError):
+    """The model declined to answer (stop_reason "refusal")."""
+
+
+MAX_TOKENS = 16000
+
+
+class AnthropicClient:
+    """Real Claude client using the official anthropic SDK.
+
+    The SDK client is created on the first call, so the app can start with
+    no API key. A call without a key raises MissingAPIKeyError, and the
+    pipeline treats that like any other model error: a safe fallback.
+    Tests pass `client=` to swap in a stand-in for AsyncAnthropic.
+    """
+
+    def __init__(self, api_key: Optional[str] = None, *, client: Any = None) -> None:
         self._api_key = api_key
+        self._client = client
+
+    def _sdk(self) -> Any:
+        if self._client is None:
+            key = self._api_key or os.environ.get("ANTHROPIC_API_KEY")
+            if not key:
+                raise MissingAPIKeyError(
+                    "ANTHROPIC_API_KEY is not set, so the model step cannot run"
+                )
+            self._client = anthropic.AsyncAnthropic(api_key=key)
+        return self._client
 
     async def complete(
         self,
@@ -98,4 +128,26 @@ class AnthropicClient:
         prompt: str,
         schema: Optional[type[BaseModel]] = None,
     ) -> LLMResult:
-        raise NotImplementedError("AnthropicClient is implemented in Phase 3")
+        request: dict[str, Any] = {
+            "model": model,
+            "max_tokens": MAX_TOKENS,
+            "system": system,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if schema is not None:
+            request["output_config"] = {
+                "format": {
+                    "type": "json_schema",
+                    "schema": anthropic.transform_schema(schema),
+                }
+            }
+        response = await self._sdk().messages.create(**request)
+        if response.stop_reason == "refusal":
+            raise ModelRefusalError(f"{model} declined the {step} step")
+        text = "".join(block.text for block in response.content if block.type == "text")
+        return LLMResult(
+            text=text,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            model=model,
+        )
