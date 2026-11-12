@@ -75,7 +75,7 @@ export default function ReportForm({ onFiled }: { onFiled: (report: unknown) => 
   }
 
   return (
-    <form onSubmit={submit} aria-label="File a report">
+    <form className="report-form" onSubmit={submit} aria-label="File a report">
       {FIELDS.map((field) => {
         const id = `field-${field.name}`;
         const errorId = `${field.name}-error`;
@@ -91,7 +91,7 @@ export default function ReportForm({ onFiled }: { onFiled: (report: unknown) => 
             setValues((current) => ({ ...current, [field.name]: event.target.value })),
         };
         return (
-          <div className="field" key={field.name}>
+          <div className={`field field-${field.kind}`} key={field.name}>
             <label htmlFor={id}>{field.label}</label>
             {field.kind === "note" ? (
               <textarea {...common} maxLength={2000} rows={4} />
@@ -108,7 +108,11 @@ export default function ReportForm({ onFiled }: { onFiled: (report: unknown) => 
           </div>
         );
       })}
-      {alert && <p role="alert">{alert}</p>}
+      {alert && (
+        <p role="alert" className="error-text">
+          {alert}
+        </p>
+      )}
       <button type="submit" disabled={filing}>
         {filing ? "Filing..." : "File report"}
       </button>
