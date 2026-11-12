@@ -14,15 +14,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # Pull requests run the two Ubuntu jobs (oldest and a recent Python).
+      # The macOS job runs only on pushes to main: GitHub's shared macOS
+      # runners often queue for 5-12 minutes, which held up every PR.
       matrix:
-        include:
-          # Oldest supported Python, a recent Python, and macOS.
-          - os: ubuntu-latest
-            python: "3.10"
-          - os: ubuntu-latest
-            python: "3.13"
-          - os: macos-latest
-            python: "3.12"
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"os":"ubuntu-latest","python":"3.10"},{"os":"ubuntu-latest","python":"3.13"}]' || '[{"os":"ubuntu-latest","python":"3.10"},{"os":"ubuntu-latest","python":"3.13"},{"os":"macos-latest","python":"3.12"}]') }}
     steps:
       - uses: actions/checkout@v5
 
