@@ -32,6 +32,7 @@ INVALID_REPLIES = [
     pytest.param("", id="empty"),
     pytest.param('{"reason": "no flag given"}', id="missing-flagged"),
     pytest.param('{"flagged": "maybe", "reason": "?"}', id="flagged-not-a-bool"),
+    pytest.param('{"flagged": "no", "reason": "?"}', id="flagged-as-the-word-no"),
 ]
 
 

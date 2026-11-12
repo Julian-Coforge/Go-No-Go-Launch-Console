@@ -26,9 +26,3 @@ class ReportIn(BaseModel):
     fuel_pct: Reading
     note: NoteText
 
-
-class ReportOut(ReportIn):
-    """A report as saved, with its id and filing time."""
-
-    id: int
-    created_at: str

@@ -7,7 +7,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.llm import AnthropicClient, LLMClient
-from app.schemas import ReportIn, ReportOut
+from app.pipeline import ReportOut, run_pipeline
+from app.schemas import ReportIn
 from app.store import ReportStore
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "mission_control.db"
@@ -37,8 +38,9 @@ def create_app(
         return {"status": "ok"}
 
     @app.post("/reports", status_code=201)
-    def file_report(report: ReportIn) -> ReportOut:
-        return app.state.store.add(report)
+    async def file_report(report: ReportIn) -> ReportOut:
+        result = await run_pipeline(app.state.llm, report)
+        return app.state.store.add(report, result)
 
     @app.get("/reports")
     def list_reports() -> list[ReportOut]:

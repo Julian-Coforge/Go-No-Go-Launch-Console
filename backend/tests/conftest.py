@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.llm import FakeClient
 from app.main import create_app
+from tests.fakes import pipeline_client
 
 
 @pytest.fixture(autouse=True)
@@ -19,7 +19,7 @@ def db_path(tmp_path):
 
 @pytest.fixture
 def client(db_path):
-    return TestClient(create_app(llm=FakeClient({}), db_path=db_path))
+    return TestClient(create_app(llm=pipeline_client(runs=20), db_path=db_path))
 
 
 @pytest.fixture
