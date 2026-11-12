@@ -26,3 +26,11 @@ class ReportIn(BaseModel):
     fuel_pct: Reading
     note: NoteText
 
+
+
+class ApproveIn(BaseModel):
+    """The Flight Director's approval of a report."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    approver_name: ShortText

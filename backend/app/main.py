@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.llm import AnthropicClient, LLMClient
 from app.pipeline import ReportOut, run_pipeline
-from app.schemas import ReportIn
+from app.schemas import ApproveIn, ReportIn
 from app.store import ReportStore
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "mission_control.db"
@@ -46,11 +46,26 @@ def create_app(
     def list_reports() -> list[ReportOut]:
         return app.state.store.list_all()
 
-    @app.get("/reports/{report_id}")
-    def get_report(report_id: int) -> ReportOut:
+    def find_report(report_id: int) -> ReportOut:
         saved = app.state.store.get(report_id)
         if saved is None:
             raise HTTPException(status_code=404, detail=f"Report {report_id} not found")
         return saved
+
+    @app.get("/reports/{report_id}")
+    def get_report(report_id: int) -> ReportOut:
+        return find_report(report_id)
+
+    @app.post("/reports/{report_id}/approve")
+    def approve_report(report_id: int, approval: ApproveIn) -> ReportOut:
+        """The only way a report becomes approved: a named person approves it."""
+        approved = app.state.store.approve(report_id, approval.approver_name)
+        if approved is None:
+            current = find_report(report_id)
+            raise HTTPException(
+                status_code=409,
+                detail=f"Report {report_id} is already {current.status} by {current.approved_by}",
+            )
+        return approved
 
     return app
