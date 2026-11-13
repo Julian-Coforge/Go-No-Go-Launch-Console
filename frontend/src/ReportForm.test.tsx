@@ -59,6 +59,20 @@ describe("ReportForm", () => {
     expect(sentBody(fetchMock).wind_knots).toBe(12.5);
   });
 
+  it("sends all six fields", () => {
+    const fetchMock = stubFetch(new Promise(() => {}));
+    render(<ReportForm onFiled={() => {}} />);
+    fillAndSubmit();
+    expect(sentBody(fetchMock)).toEqual({
+      name: "Ada Lovelace",
+      station: "Pad 39A",
+      wind_knots: 12.5,
+      temp_c: 18,
+      fuel_pct: 99,
+      note: "All readings nominal.",
+    });
+  });
+
   it("sends the text fields as typed", () => {
     const fetchMock = stubFetch(new Promise(() => {}));
     render(<ReportForm onFiled={() => {}} />);

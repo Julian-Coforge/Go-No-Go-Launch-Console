@@ -22,6 +22,37 @@ make test
 
 Both commands install what they need the first time they run: a Python virtual environment in `backend/.venv` and `npm ci` in `frontend/`. The tests need no network and no API key.
 
+### Test run
+
+Output of `make test` on 2026-11-12, run with no `ANTHROPIC_API_KEY` set. The back end suite blocks every network socket (`pytest-socket`, see `backend/pytest.ini`), and `backend/tests/test_offline.py` checks both conditions.
+
+```
+$ make test
+cd backend && .venv/bin/pytest
+platform linux -- Python 3.13.18, pytest-9.2.0, pluggy-1.7.0
+collected 268 items
+============================= 268 passed in 1.40s ==============================
+cd frontend && npm test
+ Test Files  4 passed (4)
+      Tests  73 passed (73)
+```
+
+The same command runs on every pull request in GitHub Actions (`.github/workflows/ci.yml`), on Ubuntu with Python 3.10 and 3.13, and on macOS for `main`.
+
+### Start run
+
+`make dev` on a fresh clone, checked from a second terminal:
+
+```
+$ curl localhost:5173/api/health
+{"status":"ok"}
+$ curl -X POST localhost:5173/api/reports -H 'content-type: application/json' \
+    -d '{"name":"Ada","station":"Pad 39A","wind_knots":30,"temp_c":18,"fuel_pct":99,"note":"Valve chatter."}'
+{"id": 1, "verdict": "no_go", "status": "needs_review", ...}
+```
+
+With no API key every model step falls back, so the report is marked `needs_review`. The verdict still comes from the limit check (wind 30 is over 25).
+
 ### Real model calls
 
 Set an Anthropic API key before `make dev` so the pipeline calls Claude:
